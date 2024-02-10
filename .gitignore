@@ -1,0 +1,8 @@
+# ignore the datasets
+*.json
+# ignore the .env variables location
+.env
+# ignore some clion files
+.idea/*
+example
+cmake-build-debug/*
