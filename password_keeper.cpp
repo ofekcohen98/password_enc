@@ -1,28 +1,4 @@
-//
-// Created by ofekc on 08/02/2024.
-//
-
 #include "password_keeper.h"
-#include "encrypter.h"
-#include <iostream>
-#include <fstream>
-#include <iomanip>
-#include </usr/local/include/json.hpp>
-#include <string> // Include this for std::string
-#include <cstdlib> // Include this for getenv()
-
-
-#define ENV_FILE_PATH "/home/ofekcohen/clion/password_enc/.env"
-
-
-using json = nlohmann::json;
-
-Password_keeper::Password_keeper() {
-  // Load JSON file names from .env file
-  loadEnvVariables(ENV_FILE_PATH);
-  writeToJson();
-  writeTousers();
-}
 
 void Password_keeper::loadEnvVariables(const std::string& filename) {
   std::ifstream file(filename);
@@ -65,46 +41,103 @@ void Password_keeper::loadEnvVariables(const std::string& filename) {
   }
 }
 
-void Password_keeper::writeToJson() {
-  std::string filePath = path +"/"+ passJsonFileName;
-  std::ifstream fileCheck(filePath);
-  if (fileCheck.good()) {
-    std::cout << "File already exists: " << filePath << std::endl;
-    return; // Exit the function if the file already exists
-  }
-  fileCheck.close(); // Close the file stream
-  // Create an empty JSON object
-  json passData;
+Password_keeper::Password_keeper(Encrypter& encrypter): encrypter(encrypter) {
+  loadEnvVariables(ENV_FILE_PATH);
+  loadUsers();
+  loadPasswords();
+}
 
-  // Write the empty JSON object to the passwords.json file
-  std::ofstream passOfs(filePath);
-  if (passOfs.is_open()) {
-    passOfs << std::setw(4) << passData << std::endl;
-    passOfs.close();
-    std::cout << "File created: " << filePath << std::endl;
+void Password_keeper::loadUsers() {
+  std::string usersFileName = path + "/" + usersJsonFileName;
+  std::ifstream usersFile(usersFileName);
+  usersFile >> users;
+  usersFile.close();
+}
+
+void Password_keeper::saveUsers() {
+  std::string usersFileName = path + "/" + usersJsonFileName;
+  std::ofstream usersFile(usersFileName);
+  usersFile << users;
+  usersFile.close();
+}
+
+void Password_keeper::loadPasswords() {
+  std::string passFileName = path + "/" + passJsonFileName;
+  std::ifstream passwordsFile(passFileName);
+  passwordsFile >> passwords;
+  passwordsFile.close();
+  }
+
+void Password_keeper::savePasswords() {
+  std::string passFileName = path + "/" + passJsonFileName;
+  std::ofstream passwordsFile(passFileName);
+  passwordsFile << passwords;
+  passwordsFile.close();
+}
+
+void Password_keeper::storeUser(const std::string& username, const std::string& password) {
+  std::string encryptedPassword = encrypter.encrypt(password);
+  users[username] = encryptedPassword;
+  saveUsers();
+}
+
+bool Password_keeper::authenticateUser(const std::string& username, const std::string& password) {
+  if(users.find(username) != users.end()) {
+    std::string encryptedPassword = users[username];
+    return encrypter.decrypt(encryptedPassword) == password;
   } else {
-    std::cerr << "Failed to create file: " << filePath << std::endl;
+    return false;
   }
 }
 
-void Password_keeper::writeTousers() {
-  std::string filePath = path +"/"+ usersJsonFileName;
-  std::ifstream fileCheck(filePath);
-  if (fileCheck.good()) {
-    std::cout << "File already exists: " << filePath << std::endl;
-    return; // Exit the function if the file already exists
-  }
-  fileCheck.close(); // Close the file stream
-  // Create an empty JSON object
-  json passData;
+void Password_keeper::storePassword(const std::string& username, const std::string& site, const std::string& password) {
+  std::string encryptedPassword = encrypter.encrypt(password);
+  passwords[username][site] = encryptedPassword;
+  savePasswords();
+}
 
-  // Write the empty JSON object to the passwords.json file
-  std::ofstream passOfs(filePath);
-  if (passOfs.is_open()) {
-    passOfs << std::setw(4) << passData << std::endl;
-    passOfs.close();
-    std::cout << "File created: " << filePath << std::endl;
+void Password_keeper::deletePassword(const std::string& username, const std::string& site) {
+  if (passwords.find(username) != passwords.end()) {
+    if (passwords[username].find(site) != passwords[username].end()) {
+      passwords[username].erase(site);
+      savePasswords();
+    } else {
+      std::cout << "No password stored for this site." << std::endl;
+    }
   } else {
-    std::cerr << "Failed to create file: " << filePath << std::endl;
+    std::cout << "No user found." << std::endl;
   }
+}
+
+std::string Password_keeper::retrievePassword(const std::string& username, const std::string& site) {
+  if(passwords.find(username) != passwords.end() && passwords[username].find(site) != passwords[username].end()) {
+    std::string encryptedPassword = passwords[username][site];
+    return encrypter.decrypt(encryptedPassword);
+  } else {
+    return "";
+  }
+}
+
+std::string Password_keeper::getPassJsonFileName() const {
+  return passJsonFileName;
+}
+
+void Password_keeper::setPassJsonFileName(const std::string& value) {
+  passJsonFileName = value;
+}
+
+std::string Password_keeper::getUsersJsonFileName() const {
+  return usersJsonFileName;
+}
+
+void Password_keeper::setUsersJsonFileName(const std::string& value) {
+  usersJsonFileName = value;
+}
+
+std::string Password_keeper::getPath() const {
+  return path;
+}
+
+void Password_keeper::setPath(const std::string& value) {
+  path = value;
 }

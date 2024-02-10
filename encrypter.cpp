@@ -1,31 +1,68 @@
-//
-// Created by ofekc on 08/02/2024.
-//
-
 #include "encrypter.h"
-#include <string>
+#include <cryptopp/aes.h>
+#include <cryptopp/osrng.h>
+#include <cryptopp/modes.h>
+#include <cryptopp/filters.h>
+#include <cryptopp/base64.h>
+#include <cryptopp/sha.h>
 
-std::string Encrypter::encrypt(const std::string& plaintext) {
-  CryptoPP::AES::Encryption aesEncryption((CryptoPP::byte*)master_key.c_str()
-                                          , CryptoPP::AES::DEFAULT_KEYLENGTH);
-  CryptoPP::CBC_Mode_ExternalCipher::Encryption cbcEncryption(aesEncryption, (CryptoPP::byte*)master_key.c_str());
-
-  std::string ciphertext;
-  CryptoPP::StreamTransformationFilter stfEncryptor(cbcEncryption, new CryptoPP::StringSink(ciphertext));
-  stfEncryptor.Put(reinterpret_cast<const unsigned char*>(plaintext.c_str()), plaintext.length() + 1);
-  stfEncryptor.MessageEnd();
-
-  return ciphertext;
+Encrypter::Encrypter(const std::string& keyStr) {
+  std::string keyData = keyStr;
+  if (keyData.size() < 16) {
+    keyData.append(16 - keyData.size(), '\0');
+  } else if (keyData.size() > 16 && keyData.size() < 24) {
+    keyData = keyData.substr(0, 16);
+  } else if (keyData.size() > 24 && keyData.size() < 32) {
+    keyData = keyData.substr(0, 24);
+  } else if (keyData.size() > 32) {
+    keyData = keyData.substr(0, 32);
+  }
+  key = CryptoPP::SecByteBlock((const unsigned char*)(keyData.data()), keyData.size());
+  // Generate IV from keyStr
+  CryptoPP::SHA256 hash;
+  CryptoPP::byte digest[CryptoPP::SHA256::DIGESTSIZE];
+  hash.CalculateDigest(digest, (CryptoPP::byte*)keyStr.c_str(), keyStr.length());
+  iv = CryptoPP::SecByteBlock(digest, CryptoPP::AES::BLOCKSIZE);
 }
 
-std::string Encrypter::decrypt(const std::string& ciphertext) {
-  CryptoPP::AES::Decryption aesDecryption((CryptoPP::byte*)master_key.c_str(), CryptoPP::AES::DEFAULT_KEYLENGTH);
-  CryptoPP::CBC_Mode_ExternalCipher::Decryption cbcDecryption(aesDecryption, (CryptoPP::byte*)master_key.c_str());
+std::string Encrypter::encrypt(const std::string& plainText) {
+  std::string cipherText, encoded;
+  CryptoPP::AutoSeededRandomPool prng;
 
-  std::string decryptedtext;
-  CryptoPP::StreamTransformationFilter stfDecryptor(cbcDecryption, new CryptoPP::StringSink(decryptedtext));
-  stfDecryptor.Put(reinterpret_cast<const unsigned char*>(ciphertext.c_str()), ciphertext.size());
-  stfDecryptor.MessageEnd();
+  CryptoPP::CFB_Mode<CryptoPP::AES>::Encryption cfbEncryption(key, key.size(), iv);
+  CryptoPP::StringSource ss1(plainText, true,
+                             new CryptoPP::StreamTransformationFilter(cfbEncryption,
+                                                                      new CryptoPP::StringSink(cipherText)
+                             ) // StreamTransformationFilter
+  ); // StringSource
 
-  return decryptedtext;
+  // Base64 encode
+  CryptoPP::StringSource ss2(cipherText, true,
+                             new CryptoPP::Base64Encoder(
+                                 new CryptoPP::StringSink(encoded)
+                             ) // Base64Encoder
+  ); // StringSource
+
+  return encoded;
+}
+
+std::string Encrypter::decrypt(const std::string& cipherText) {
+  std::string decoded, decryptedText;
+  CryptoPP::AutoSeededRandomPool prng;
+
+  // Base64 decode
+  CryptoPP::StringSource ss1(cipherText, true,
+                             new CryptoPP::Base64Decoder(
+                                 new CryptoPP::StringSink(decoded)
+                             ) // Base64Decoder
+  ); // StringSource
+
+  CryptoPP::CFB_Mode<CryptoPP::AES>::Decryption cfbDecryption(key, key.size(), iv);
+  CryptoPP::StringSource ss2(decoded, true,
+                             new CryptoPP::StreamTransformationFilter(cfbDecryption,
+                                                                      new CryptoPP::StringSink(decryptedText)
+                             ) // StreamTransformationFilter
+  ); // StringSource
+
+  return decryptedText;
 }
