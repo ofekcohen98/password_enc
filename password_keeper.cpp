@@ -1,8 +1,12 @@
 #include "password_keeper.h"
 
 void Password_keeper::loadEnvVariables(const std::string& filename) {
-  std::ifstream file(filename);
-  if (file.is_open()) {
+  try
+  {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+      throw std::runtime_error("Failed to open .env file.");
+    }
     std::map<std::string, std::string> envVariables;
     std::string line;
     while (std::getline(file, line)) {
@@ -36,8 +40,8 @@ void Password_keeper::loadEnvVariables(const std::string& filename) {
     }
 
     file.close();
-  } else {
-    std::cerr << "Failed to open .env file." << std::endl;
+  } catch (const std::exception& e) {
+    std::cerr << e.what() << std::endl;
   }
 }
 
@@ -48,10 +52,17 @@ Password_keeper::Password_keeper(Encrypter& encrypter): encrypter(encrypter) {
 }
 
 void Password_keeper::loadUsers() {
-  std::string usersFileName = path + "/" + usersJsonFileName;
-  std::ifstream usersFile(usersFileName);
-  usersFile >> users;
-  usersFile.close();
+  try {
+    std::string usersFileName = path + "/" + usersJsonFileName;
+    std::ifstream usersFile(usersFileName);
+    if (!usersFile.is_open()) {
+      throw std::runtime_error("Failed to open users file.");
+    }
+    usersFile >> users;
+    usersFile.close();
+  } catch (const std::exception& e) {
+    std::cerr << e.what() << std::endl;
+  }
 }
 
 void Password_keeper::saveUsers() {
@@ -62,11 +73,18 @@ void Password_keeper::saveUsers() {
 }
 
 void Password_keeper::loadPasswords() {
-  std::string passFileName = path + "/" + passJsonFileName;
-  std::ifstream passwordsFile(passFileName);
-  passwordsFile >> passwords;
-  passwordsFile.close();
+  try {
+    std::string passFileName = path + "/" + passJsonFileName;
+    std::ifstream passwordsFile(passFileName);
+    if (!passwordsFile.is_open()) {
+      throw std::runtime_error("Failed to open passwords file.");
+    }
+    passwordsFile >> passwords;
+    passwordsFile.close();
+  } catch (const std::exception& e) {
+    std::cerr << e.what() << std::endl;
   }
+}
 
 void Password_keeper::savePasswords() {
   std::string passFileName = path + "/" + passJsonFileName;
@@ -76,26 +94,37 @@ void Password_keeper::savePasswords() {
 }
 
 void Password_keeper::storeUser(const std::string& username, const std::string& password) {
-  std::string encryptedPassword = encrypter.encrypt(password);
-  users[username] = encryptedPassword;
-  saveUsers();
-}
-
-bool Password_keeper::authenticateUser(const std::string& username, const std::string& password) {
-  if(users.find(username) != users.end()) {
-    std::string encryptedPassword = users[username];
-    return encrypter.decrypt(encryptedPassword) == password;
-  } else {
-    return false;
+  try {
+    std::string encryptedPassword = encrypter.encrypt(password);
+    users[username] = encryptedPassword;
+    saveUsers();
+  } catch (const std::exception& e) {
+    std::cerr << e.what() << std::endl;
   }
 }
 
-void Password_keeper::storePassword(const std::string& username, const std::string& site, const std::string& password) {
-  std::string encryptedPassword = encrypter.encrypt(password);
-  passwords[username][site] = encryptedPassword;
-  savePasswords();
+bool Password_keeper::authenticateUser(const std::string& username, const std::string& password) {
+  try {
+    if(users.find(username) != users.end()) {
+      std::string encryptedPassword = users[username];
+      return encrypter.decrypt(encryptedPassword) == password;
+    } else {
+      return false;
+    }
+  } catch (const std::exception& e) {
+    std::cerr << e.what() << std::endl;
+    return false;
+  }
 }
-
+void Password_keeper::storePassword(const std::string& username, const std::string& site, const std::string& password) {
+  try {
+    std::string encryptedPassword = encrypter.encrypt(password);
+    passwords[username][site] = encryptedPassword;
+    savePasswords();
+  } catch (const std::exception& e) {
+    std::cerr << e.what() << std::endl;
+  }
+}
 void Password_keeper::deletePassword(const std::string& username, const std::string& site) {
   if (passwords.find(username) != passwords.end()) {
     if (passwords[username].find(site) != passwords[username].end()) {
@@ -110,14 +139,18 @@ void Password_keeper::deletePassword(const std::string& username, const std::str
 }
 
 std::string Password_keeper::retrievePassword(const std::string& username, const std::string& site) {
-  if(passwords.find(username) != passwords.end() && passwords[username].find(site) != passwords[username].end()) {
-    std::string encryptedPassword = passwords[username][site];
-    return encrypter.decrypt(encryptedPassword);
-  } else {
+  try {
+    if(passwords.find(username) != passwords.end() && passwords[username].find(site) != passwords[username].end()) {
+      std::string encryptedPassword = passwords[username][site];
+      return encrypter.decrypt(encryptedPassword);
+    } else {
+      return "";
+    }
+  } catch (const std::exception& e) {
+    std::cerr << e.what() << std::endl;
     return "";
   }
 }
-
 std::string Password_keeper::getPassJsonFileName() const {
   return passJsonFileName;
 }

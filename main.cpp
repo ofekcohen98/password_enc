@@ -53,40 +53,47 @@ void testPasswordKeeper()
 }
 
 int main() {
-    //    enc_tester();
+//        enc_tester();
 //    testPasswordKeeper();
     int choice;
     std::string username, password;
-
-    while (true) {
+  while (true)
+  {
+    try
+    {
       std::cout << "1. Register\n";
       std::cout << "2. Login\n";
       std::cout << "3. Quit\n";
       std::cout << "Enter your choice: ";
       std::cin >> choice;
 
-      if (choice == 1) {
+      if (choice == 1)
+      {
         std::cout << "Enter username: ";
         std::cin >> username;
         std::cout << "Enter password: ";
         std::cin >> password;
-        Encrypter encrypter(password);
-        Password_keeper passwordKeeper(encrypter);
-        passwordKeeper.storeUser(username, password);
+        Encrypter encrypter (password);
+        Password_keeper passwordKeeper (encrypter);
+        passwordKeeper.storeUser (username, password);
         std::cout << "User registered successfully!\n";
-      } else if (choice == 2) {
+      }
+      else if (choice == 2)
+      {
         std::cout << "Enter username: ";
         std::cin >> username;
         std::cout << "Enter password: ";
         std::cin >> password;
-        Encrypter encrypter(password);
-        Password_keeper passwordKeeper(encrypter);
-        if (passwordKeeper.authenticateUser(username, password)) {
+        Encrypter encrypter (password);
+        Password_keeper passwordKeeper (encrypter);
+        if (passwordKeeper.authenticateUser (username, password))
+        {
           std::cout << "Login successful!\n";
           int passwordChoice;
           std::string passwordName, newPassword;
 
-          while (true) {
+          while (true)
+          {
             std::cout << "1. Add new password\n";
             std::cout << "2. Delete password\n";
             std::cout << "3. Get password\n";
@@ -94,38 +101,57 @@ int main() {
             std::cout << "Enter your choice: ";
             std::cin >> passwordChoice;
 
-            if (passwordChoice == 1) {
+            if (passwordChoice == 1)
+            {
               std::cout << "Enter password name: ";
               std::cin >> passwordName;
               std::cout << "Enter new password: ";
               std::cin >> newPassword;
-              passwordKeeper.storePassword(username, passwordName, newPassword);
+              passwordKeeper.storePassword (username, passwordName, newPassword);
               std::cout << "Password added successfully!\n";
-            } else if (passwordChoice == 2) {
+            }
+            else if (passwordChoice == 2)
+            {
               std::cout << "Enter password name: ";
               std::cin >> passwordName;
-              passwordKeeper.deletePassword(username, passwordName);
+              passwordKeeper.deletePassword (username, passwordName);
               std::cout << "Password deleted successfully!\n";
-            } else if (passwordChoice == 3) {
+            }
+            else if (passwordChoice == 3)
+            {
               std::cout << "Enter password name: ";
               std::cin >> passwordName;
-              std::string retrievedPassword = passwordKeeper.retrievePassword(username, passwordName);
+              std::string retrievedPassword = passwordKeeper.retrievePassword (username, passwordName);
               std::cout << "Password: " << retrievedPassword << "\n";
-            } else if (passwordChoice == 4) {
+            }
+            else if (passwordChoice == 4)
+            {
               break;
-            } else {
+            }
+            else
+            {
               std::cout << "Invalid choice. Please enter 1, 2, 3, or 4.\n";
             }
           }
-        } else {
+        }
+        else
+        {
           std::cout << "Invalid username or password!\n";
         }
-      } else if (choice == 3) {
+      }
+      else if (choice == 3)
+      {
         return 0;
-      } else {
+      }
+      else
+      {
         std::cout << "Invalid choice. Please enter 1, 2, or 3.\n";
       }
     }
-
+    catch (const std::exception& e)
+    {
+      std::cerr << e.what() << std::endl;
+    }
+  }
     return 0;
   }

@@ -5,6 +5,7 @@
 #include <cryptopp/filters.h>
 #include <cryptopp/base64.h>
 #include <cryptopp/sha.h>
+#define BLOCK ""
 
 Encrypter::Encrypter(const std::string& keyStr) {
   std::string keyData = keyStr;
@@ -26,43 +27,55 @@ Encrypter::Encrypter(const std::string& keyStr) {
 }
 
 std::string Encrypter::encrypt(const std::string& plainText) {
-  std::string cipherText, encoded;
-  CryptoPP::AutoSeededRandomPool prng;
+  try {
+    std::string cipherText, encoded;
+    CryptoPP::AutoSeededRandomPool prng;
 
-  CryptoPP::CFB_Mode<CryptoPP::AES>::Encryption cfbEncryption(key, key.size(), iv);
-  CryptoPP::StringSource ss1(plainText, true,
-                             new CryptoPP::StreamTransformationFilter(cfbEncryption,
-                                                                      new CryptoPP::StringSink(cipherText)
-                             ) // StreamTransformationFilter
-  ); // StringSource
+    CryptoPP::CFB_Mode<CryptoPP::AES>::Encryption cfbEncryption(key, key.size(), iv);
+    CryptoPP::StringSource ss1(plainText, true,
+                               new CryptoPP::StreamTransformationFilter(cfbEncryption,
+                                                                        new CryptoPP::StringSink(cipherText)
+                               ) // StreamTransformationFilter
+    ); // StringSource
 
-  // Base64 encode
-  CryptoPP::StringSource ss2(cipherText, true,
-                             new CryptoPP::Base64Encoder(
-                                 new CryptoPP::StringSink(encoded)
-                             ) // Base64Encoder
-  ); // StringSource
+    // Base64 encode
+    CryptoPP::StringSource ss2(cipherText, true,
+                               new CryptoPP::Base64Encoder(
+                                   new CryptoPP::StringSink(encoded)
+                               ) // Base64Encoder
+    ); // StringSource
 
-  return encoded;
+    return encoded;
+  } catch (const CryptoPP::Exception& e) {
+    // Handle the exception
+    std::cerr << e.what() << std::endl;
+    return BLOCK;
+  }
 }
 
 std::string Encrypter::decrypt(const std::string& cipherText) {
-  std::string decoded, decryptedText;
-  CryptoPP::AutoSeededRandomPool prng;
+  try {
+    std::string decoded, decryptedText;
+    CryptoPP::AutoSeededRandomPool prng;
 
-  // Base64 decode
-  CryptoPP::StringSource ss1(cipherText, true,
-                             new CryptoPP::Base64Decoder(
-                                 new CryptoPP::StringSink(decoded)
-                             ) // Base64Decoder
-  ); // StringSource
+    // Base64 decode
+    CryptoPP::StringSource ss1(cipherText, true,
+                               new CryptoPP::Base64Decoder(
+                                   new CryptoPP::StringSink(decoded)
+                               ) // Base64Decoder
+    ); // StringSource
 
-  CryptoPP::CFB_Mode<CryptoPP::AES>::Decryption cfbDecryption(key, key.size(), iv);
-  CryptoPP::StringSource ss2(decoded, true,
-                             new CryptoPP::StreamTransformationFilter(cfbDecryption,
-                                                                      new CryptoPP::StringSink(decryptedText)
-                             ) // StreamTransformationFilter
-  ); // StringSource
+    CryptoPP::CFB_Mode<CryptoPP::AES>::Decryption cfbDecryption(key, key.size(), iv);
+    CryptoPP::StringSource ss2(decoded, true,
+                               new CryptoPP::StreamTransformationFilter(cfbDecryption,
+                                                                        new CryptoPP::StringSink(decryptedText)
+                               ) // StreamTransformationFilter
+    ); // StringSource
 
-  return decryptedText;
+    return decryptedText;
+  } catch (const CryptoPP::Exception& e) {
+    // Handle the exception
+    std::cerr << e.what() << std::endl;
+    return BLOCK;
+  }
 }

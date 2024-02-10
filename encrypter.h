@@ -3,6 +3,7 @@
 #include <cryptopp/osrng.h>
 #include <cryptopp/modes.h>
 #include <cryptopp/filters.h>
+#include <iostream>
 
 class Encrypter {
  private:
